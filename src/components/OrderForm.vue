@@ -71,8 +71,8 @@
 </template>
 
 <script>
-import { VueReCaptcha } from "vue-recaptcha-v3";
-Vue.use(VueReCaptcha, { siteKey: "6LfSJOoUAAAAACo5FptLy5inFhJmhIPF9E9ekwsN" });
+// import { VueReCaptcha } from "vue-recaptcha-v3";
+// Vue.use(VueReCaptcha, { siteKey: "6LfSJOoUAAAAACo5FptLy5inFhJmhIPF9E9ekwsN" });
 
 export default {
   data() {
