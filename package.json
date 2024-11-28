@@ -12,7 +12,7 @@
     "axios": "^1.7.8",
     "bootstrap": "^5.3.3",
     "vue": "^3.5.12",
-    "vue-recaptcha": "^3.0.0-alpha.6",
+    "vue-recaptcha-v3": "^2.0.1",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 <template>
   <div class="container mt-5">
     <form @submit.prevent="submitForm" class="border p-4 shadow-sm rounded">
-      <h3 class="mb-4">Order Form</h3>
+      <h3 class="mb-4">Pre Order Form</h3>
 
       <!-- Customer Name -->
       <div class="mb-3">
@@ -18,7 +18,7 @@
       <!-- Customer Phone -->
       <div class="mb-3">
         <label for="customerPhone" class="form-label">Customer Phone:</label>
-        <input type="tel" v-model="order.customerPhone" class="form-control" required />
+        <input type="tel" v-model="order.customerPhone" class="form-control" :required="isPhoneRequired" />
       </div>
 
       <!-- Product Section -->
@@ -26,7 +26,7 @@
         <label for="products" class="form-label">Select Product:</label>
         <div v-for="(product, index) in order.products" :key="index" class="mb-4">
           <div class="row">
-            <!-- Product Search Input (Full Width on Mobile) -->
+            <!-- Product Search Input -->
             <div class="col-12 col-md-4 mb-2 mb-md-0">
               <input
                   type="text"
@@ -36,14 +36,14 @@
                   placeholder="Search Product"
               />
             </div>
-            <!-- Product Dropdown (Full Width on Mobile) -->
+            <!-- Product Dropdown -->
             <div class="col-12 col-md-4 mb-2 mb-md-0">
               <select v-model="product.id" class="form-select" required>
                 <option value="" disabled selected>Select Product</option>
                 <option v-for="p in product.searchResults" :value="p.id" :key="p.id">{{ p.name }}</option>
               </select>
             </div>
-            <!-- Quantity Input (Full Width on Mobile) -->
+            <!-- Quantity Input -->
             <div class="col-12 col-md-2 mb-2 mb-md-0">
               <input
                   type="number"
@@ -71,7 +71,8 @@
 </template>
 
 <script>
-import axios from 'axios';
+import { VueReCaptcha } from "vue-recaptcha-v3";
+Vue.use(VueReCaptcha, { siteKey: "6LfSJOoUAAAAACo5FptLy5inFhJmhIPF9E9ekwsN" });
 
 export default {
   data() {
@@ -82,40 +83,60 @@ export default {
         customerPhone: '',
         products: [{ id: '', quantity: 1, searchQuery: '', searchResults: [] }]
       },
-      formValid: true,
       typingTimeout: null
     };
   },
+  computed: {
+    formValid() {
+      return (
+          this.order.customerName &&
+          this.order.customerEmail &&
+          this.order.customerPhone &&
+          this.order.products.every(
+              (product) => product.id && product.quantity > 0
+          )
+      );
+    },
+    isPhoneRequired() {
+      // Check if the email ends with @xyz.com
+      return this.order.customerEmail.endsWith('@xyz.com');
+    }
+  },
+  mounted() {
+    this.fetchInitialProducts();
+  },
   methods: {
-    // Debounced search API call
+    async fetchInitialProducts() {
+      try {
+        const response = await this.$axios.get('/products');
+        this.order.products[0].searchResults = response.data.products;
+      } catch (error) {
+        console.error('Error fetching initial products:', error);
+      }
+    },
     async searchProduct(index) {
       const searchQuery = this.order.products[index].searchQuery;
       if (this.typingTimeout) clearTimeout(this.typingTimeout);
 
       this.typingTimeout = setTimeout(async () => {
         try {
-          const response = await axios.get('/products', {
-            params: {
-              query: searchQuery
-            }
-          });
-          this.order.products[index].searchResults = response.data.products;
+          const response = await this.$axios.get('/products', { params: { query: searchQuery } });
+          const results = response.data.products;
+          this.order.products[index].searchResults = results;
+          if (results.length === 0) {
+            console.warn('No products found for the search query.');
+          }
         } catch (error) {
           console.error('Error fetching products:', error);
         }
       }, 300);
     },
-
-    // Add a new product selection row
     addProduct() {
       this.order.products.push({ id: '', quantity: 1, searchQuery: '', searchResults: [] });
     },
-
-    // Submit the form with order data
     async submitForm() {
       try {
-        // Make the POST API call with order data
-        const response = await axios.post('/api/order', this.order);
+        const response = await this.$axios.post('/pre-orders', this.order);
         console.log('Order Submitted:', response.data);
       } catch (error) {
         console.error('Error submitting order:', error);
@@ -126,5 +147,7 @@ export default {
 </script>
 
 <style scoped>
-/* Add any additional custom styles here if necessary */
+input:invalid {
+  border-color: red;
+}
 </style>
