@@ -6,19 +6,22 @@
       <!-- Customer Name -->
       <div class="mb-3">
         <label for="customerName" class="form-label">Customer Name:</label>
-        <input type="text" v-model="order.customerName" class="form-control" required />
+        <input type="text" v-model="order.customer_name" class="form-control" required />
+        <span v-if="errors.customer_name" class="text-danger">{{ errors.customer_name[0] }}</span>
       </div>
 
       <!-- Customer Email -->
       <div class="mb-3">
         <label for="customerEmail" class="form-label">Customer Email:</label>
-        <input type="email" v-model="order.customerEmail" class="form-control" required />
+        <input type="email" v-model="order.customer_email" class="form-control" required />
+        <span v-if="errors.customer_email" class="text-danger">{{ errors.customer_email[0] }}</span>
       </div>
 
       <!-- Customer Phone -->
       <div class="mb-3">
         <label for="customerPhone" class="form-label">Customer Phone:</label>
-        <input type="tel" v-model="order.customerPhone" class="form-control" :required="isPhoneRequired" />
+        <input type="tel" v-model="order.customer_phone" class="form-control" :required="isPhoneRequired" />
+        <span v-if="errors.customer_phone" class="text-danger">{{ errors.customer_phone[0] }}</span>
       </div>
 
       <!-- Product Section -->
@@ -38,10 +41,11 @@
             </div>
             <!-- Product Dropdown -->
             <div class="col-12 col-md-4 mb-2 mb-md-0">
-              <select v-model="product.id" class="form-select" required>
+              <select v-model="product.slug" class="form-select" required>
                 <option value="" disabled selected>Select Product</option>
-                <option v-for="p in product.searchResults" :value="p.id" :key="p.id">{{ p.name }}</option>
+                <option v-for="p in product.searchResults" :value="p.slug" :key="p.slug">{{ p.name }}</option>
               </select>
+              <span v-if="errors[`products.${index}.slug`]" class="text-danger">{{ errors[`products.${index}.slug`][0] }}</span>
             </div>
             <!-- Quantity Input -->
             <div class="col-12 col-md-2 mb-2 mb-md-0">
@@ -53,6 +57,7 @@
                   class="form-control"
                   required
               />
+              <span v-if="errors[`products.${index}.quantity`]" class="text-danger">{{ errors[`products.${index}.quantity`][0] }}</span>
             </div>
             <!-- Add More Button -->
             <div class="col-12 col-md-2">
@@ -64,42 +69,47 @@
 
       <!-- Submit Button -->
       <div class="d-flex justify-content-center">
-        <button type="submit" :disabled="!formValid" class="btn btn-primary">Submit</button>
+        <button type="submit"  class="btn btn-primary">Submit</button>
       </div>
     </form>
   </div>
 </template>
 
 <script>
-// import { VueReCaptcha } from "vue-recaptcha-v3";
-// Vue.use(VueReCaptcha, { siteKey: "6LfSJOoUAAAAACo5FptLy5inFhJmhIPF9E9ekwsN" });
-
 export default {
   data() {
     return {
       order: {
-        customerName: '',
-        customerEmail: '',
-        customerPhone: '',
-        products: [{ id: '', quantity: 1, searchQuery: '', searchResults: [] }]
+        customer_name: '',
+        customer_email: '',
+        customer_phone: '',
+        products: [{ slug: '', quantity: 1, searchQuery: '', searchResults: [] }]
       },
-      typingTimeout: null
+      typingTimeout: null,
+      errors: {}, // Object to hold backend validation errors
     };
   },
   computed: {
     formValid() {
       return (
-          this.order.customerName &&
-          this.order.customerEmail &&
-          this.order.customerPhone &&
+          this.order.customer_name &&
+          this.order.customer_email &&
+          this.order.customer_phone &&
           this.order.products.every(
-              (product) => product.id && product.quantity > 0
-          )
+              (product) => product.slug && product.quantity > 0
+          ) &&
+          this.isPhoneValid &&
+          this.isEmailValid
       );
     },
+    isPhoneValid() {
+      return this.order.customer_phone.match(/^(\+\d{1,3}[- ]?)?\d{10}$/);
+    },
+    isEmailValid() {
+      return this.order.customer_email.match(/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/);
+    },
     isPhoneRequired() {
-      // Check if the email ends with @xyz.com
-      return this.order.customerEmail.endsWith('@xyz.com');
+      return this.order.customer_email.endsWith('@xyz.com');
     }
   },
   mounted() {
@@ -109,7 +119,7 @@ export default {
     async fetchInitialProducts() {
       try {
         const response = await this.$axios.get('/products');
-        this.order.products[0].searchResults = response.data.products;
+        this.order.products[0].searchResults = response.data.data.products;
       } catch (error) {
         console.error('Error fetching initial products:', error);
       }
@@ -121,7 +131,7 @@ export default {
       this.typingTimeout = setTimeout(async () => {
         try {
           const response = await this.$axios.get('/products', { params: { query: searchQuery } });
-          const results = response.data.products;
+          const results = response.data.data.products;
           this.order.products[index].searchResults = results;
           if (results.length === 0) {
             console.warn('No products found for the search query.');
@@ -132,14 +142,21 @@ export default {
       }, 300);
     },
     addProduct() {
-      this.order.products.push({ id: '', quantity: 1, searchQuery: '', searchResults: [] });
+      this.order.products.push({ slug: '', quantity: 1, searchQuery: '', searchResults: [] });
     },
     async submitForm() {
       try {
-        const response = await this.$axios.post('/pre-orders', this.order);
+        // Clear previous errors
+        this.errors = {};
+        const response = await this.$axios.post('/pre-order', this.order);
         console.log('Order Submitted:', response.data);
       } catch (error) {
-        console.error('Error submitting order:', error);
+        if (error.response && error.response.status === 422) {
+          // Backend validation error, populate errors object
+          this.errors = error.response.data.errors;
+        } else {
+          console.error('Error submitting order:', error);
+        }
       }
     }
   }
