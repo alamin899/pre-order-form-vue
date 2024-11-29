@@ -3,6 +3,8 @@
     <form @submit.prevent="submitForm" class="border p-4 shadow-sm rounded">
       <h3 class="mb-4">Pre Order Form</h3>
 
+      <input type="hidden" v-model="order.gRecaptchaToken" />
+
       <!-- Customer Name -->
       <div class="mb-3">
         <label for="customerName" class="form-label">Customer Name:</label>
@@ -76,6 +78,9 @@
 </template>
 
 <script>
+import { useReCaptcha } from 'vue-recaptcha-v3';
+import { toast } from 'vue3-toastify';  // Import toast from vue3-toastify
+
 export default {
   data() {
     return {
@@ -83,8 +88,10 @@ export default {
         customer_name: '',
         customer_email: '',
         customer_phone: '',
+        gRecaptchaToken:'',
         products: [{ slug: '', quantity: 1, searchQuery: '', searchResults: [] }]
       },
+      executeRecaptcha: null,
       typingTimeout: null,
       errors: {}, // Object to hold backend validation errors
     };
@@ -113,6 +120,8 @@ export default {
     }
   },
   mounted() {
+    const {executeRecaptcha} = useReCaptcha();
+    this.executeRecaptcha = executeRecaptcha;
     this.fetchInitialProducts();
   },
   methods: {
@@ -130,7 +139,7 @@ export default {
 
       this.typingTimeout = setTimeout(async () => {
         try {
-          const response = await this.$axios.get('/products', { params: { query: searchQuery } });
+          const response = await this.$axios.get('/products', {params: {query: searchQuery}});
           const results = response.data.data.products;
           this.order.products[index].searchResults = results;
           if (results.length === 0) {
@@ -142,14 +151,29 @@ export default {
       }, 300);
     },
     addProduct() {
-      this.order.products.push({ slug: '', quantity: 1, searchQuery: '', searchResults: [] });
+      this.order.products.push({slug: '', quantity: 1, searchQuery: '', searchResults: []});
     },
     async submitForm() {
       try {
         // Clear previous errors
         this.errors = {};
+
+        if (!this.executeRecaptcha) {
+          console.error('reCAPTCHA is not initialized');
+          return;
+        }
+
+        // Get reCAPTCHA token
+        this.order.gRecaptchaToken = await this.executeRecaptcha('submit_form');
+
         const response = await this.$axios.post('/pre-order', this.order);
         console.log('Order Submitted:', response.data);
+
+        // Show success toast
+        toast.success('Your order has been successfully submitted!', {
+          position: 'top-right',
+          autoClose: 5000,
+        });
       } catch (error) {
         if (error.response && error.response.status === 422) {
           // Backend validation error, populate errors object
@@ -157,6 +181,12 @@ export default {
         } else {
           console.error('Error submitting order:', error);
         }
+
+        // Show error toast
+        toast.error('An error occurred while submitting your order.', {
+          position: 'top-right',
+          autoClose: 5000,
+        });
       }
     }
   }
