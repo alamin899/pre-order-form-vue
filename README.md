@@ -2,28 +2,33 @@
 
 This template should help get you started developing with Vue 3 in Vite.
 
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
 ## Project Setup
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
 npm run build
 ```
+
+### google recaptch configration
+
+```sh
+RECAPTCHA_SITE_KEY this key add on your .env 
+          OR
+add on main.js 
+app.use(VueReCaptcha, {
+    siteKey:  "6Lem9OYoAAAAAFB9_JpLUomEi_Lhkvx15y1oIZ2qhjhk"
+});
+```
+
+### configration
+
+```sh
+add API_BASE_URL=http://localhost:8000/pre-order/api/  to your .env
+              OR
+const axiosInstance = axios.create({
+    baseURL:'http://localhost:8000/pre-order/api',
+});
+```
+
+

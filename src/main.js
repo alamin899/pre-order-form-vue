@@ -11,7 +11,7 @@ import 'vue3-toastify/dist/index.css'; // Import the toastify CSS
 
 
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/pre-order/api',
+    baseURL: import.meta.env.API_BASE_URL || 'http://localhost:8000/pre-order/api',
 });
 
 const app = createApp(App);
@@ -19,7 +19,7 @@ const app = createApp(App);
 app.config.globalProperties.$axios = axiosInstance;
 
 app.use(VueReCaptcha, {
-    siteKey: "6Lem9OYoAAAAAFB9_JpLUomEi_Lhkvx15y1oIZ2q"
+    siteKey: import.meta.env.RECAPTCHA_SITE_KEY || "6Lem9OYoAAAAAFB9_JpLUomEi_Lhkvx15y1oIZ2q"
 });
 app.use(Vue3Toastify)
 
