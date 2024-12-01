@@ -151,8 +151,22 @@ export default {
       }, 300);
     },
     addProduct() {
-      this.order.products.push({slug: '', quantity: 1, searchQuery: '', searchResults: []});
+      const newProduct = { slug: '', quantity: 1, searchQuery: '', searchResults: [] };
+      this.order.products.push(newProduct);
+
+      const newIndex = this.order.products.length - 1;
+      this.fetchProductsForProductField(newIndex);
     },
+
+    async fetchProductsForProductField(index) {
+      try {
+        const response = await this.$axios.get('/products');
+        this.order.products[index].searchResults = response.data.data.products; // Populate the searchResults array
+      } catch (error) {
+        console.error(`Error fetching products for product field ${index}:`, error);
+      }
+    },
+
     async submitForm() {
       try {
         // Clear previous errors
@@ -166,7 +180,14 @@ export default {
         // Get reCAPTCHA token
         this.order.gRecaptchaToken = await this.executeRecaptcha('submit_form');
 
-        const response = await this.$axios.post('/pre-order', this.order);
+        const orderData = {
+          ...this.order,
+          products: this.order.products.map((product) => ({
+            slug: product.slug,
+            quantity: product.quantity,
+          })),
+        };
+        const response = await this.$axios.post('/pre-order', orderData);
         console.log('Order Submitted:', response.data);
 
         // Show success toast
